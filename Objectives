@@ -1,0 +1,17 @@
+This work is based on 3 main "pillars', 3 different questions which I was aiming to find answers for.
+Those qustions were:
+- Is it possible, through a textual analysis of reviews, to identify positive and negative characteristics associated with car models?
+- Is it possible, starting from comments, to evaluate how much consumer perceptions of a car’s features impact the overall rating?
+- By using text mining and sentiment analysis functions, it is possible to understand the causes of the changes in average scores of a model, in term of user rating, over the years.
+
+These 3 questions translated in these 3 main topics.
+Identify the main positive and negative characteristics that consumers associate with products of different brands.
+Quantify the impact that perceptions of certain attributes have on the overall evaluation of a product.
+Trace the characteristics that have influenced product ratings over the years.
+
+In the Script I loaded there are some part of the code that were used to answer these questions.
+
+The Report file will contain the whole thesis translated in EN.
+
+
+
