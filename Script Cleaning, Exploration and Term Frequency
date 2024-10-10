@@ -282,7 +282,7 @@ freqIDF <- dfSLtdmIDF %>%
 freqIDF
 
 
-
+# Sentiment Analysis 
 source("./sentimentFunctions.R")
 library(sentimentr)
 library(RSentiment)
@@ -344,3 +344,108 @@ D_4_n<-D_4%>%filter(D_4$syuz_polarity=="negativo")
 c_4_p <- Corpus( VectorSource(D_4_p) )
 c_4_n <- Corpus( VectorSource(D_4_n) )
 
+
+# Co-occurance of terms
+Lrav4<- dfLemm[1:20619,]
+Lcrv<- dfLemm[20620:53650,]
+Laccord<- dfLemm[53651:95126,]
+Lcamry<- dfLemm[95127:116470,]
+Lcivic<- dfLemm[116471:155969,]
+
+
+Lcamry<- dfLemm[62563:82966,]
+
+#freni
+Lrav4f<-Lrav4
+Lcrvf<-Lcrv
+Laccordf<-Laccord
+Lcamryf<-Lcamry
+Lcivicf<-Lcivic
+
+Lrav4f<-Lrav4f[Lrav4f$lemma == "brake", ]
+Lrav4f
+
+Lcrvf<-Lcrvf[Lcrvf$lemma == "brake", ]
+Lcrvf
+
+Laccordf<-Laccordf[Laccordf$lemma == "brake", ]
+Laccordf
+
+Lcamryf<-Lcamryf[Lcamryf$lemma == "brake", ]
+Lcamryf
+
+Lcivicf<-Lcivicf[Lcivicf$lemma == "brake", ]
+Lcivicf
+
+n<-Lrav4f$doc_id
+n
+x2<- as.data.frame(Lrav4f)
+
+x2 <- as.data.frame(Lrav4[Lrav4$doc_id == "1",])
+x2 <- rbind( x2, as.data.frame(Lrav4[Lrav4$doc_id == "15",]))
+x2 <- rbind( x2, as.data.frame(Lrav4[Lrav4$doc_id == "38",]))
+x2 <- rbind( x2, as.data.frame(Lrav4[Lrav4$doc_id == "41",]))
+x2 <- rbind( x2, as.data.frame(Lrav4[Lrav4$doc_id == "67",]))
+x2 <- rbind( x2, as.data.frame(Lrav4[Lrav4$doc_id == "80",]))
+x2 <- rbind( x2, as.data.frame(Lrav4[Lrav4$doc_id == "82",]))
+x2 <- rbind( x2, as.data.frame(Lrav4[Lrav4$doc_id == "95",]))
+x2 <- rbind( x2, as.data.frame(Lrav4[Lrav4$doc_id == "101",]))
+x2 <- rbind( x2, as.data.frame(Lrav4[Lrav4$doc_id == "112",]))
+x2 <- rbind( x2, as.data.frame(Lrav4[Lrav4$doc_id == "118",]))
+
+x <- dfLemm[dfLemm$STOP == FALSE,]
+x <- x[x$upos == "NOUN" | x$upos == "ADJ"|x$upos == "VERB",]
+stats <- subset(x)
+stats <- txt_freq(x = x$lemma)
+
+library(lattice)
+stats$key <- factor(stats$key, levels = rev(stats$key))
+
+barchart(key ~ freq, data = head(stats, 30), col = "cadetblue", main = "Most occurring nouns", xlab = "Freq")
+
+
+## Co-occurrences: How frequent do words occur in the same sentence, in this case only nouns or adjectives
+stats <- cooccurrence(x = subset(x, upos %in% c("ADJ","VERB","NOUN")), 
+                      term = "lemma", group = c("doc_id", "paragraph_id", "sentence_id"))
+
+
+stats<-as.data.frame(stats)
+x2<- stats[(stats$term2=="price"),]
+x2<- x2[order(x2$cooc,decreasing = TRUE),]
+
+x2<-x2[1:30,c(1,3)]
+
+barchart(x2$term1 ~ x2$cooc, data =x2, col = "cadetblue", main = "Most occurring nouns", xlab = "Freq")
+
+
+## Co-occurrences: How frequent do words follow one another
+stats <- cooccurrence(x = x$lemma, 
+                      relevant = x$upos %in% c( "ADJ","NOUN"))
+## Co-occurrences: How frequent do words follow one another even if we would skip 2 words in between
+stats <- cooccurrence(x = x$lemma, 
+                      relevant = x$upos %in% c("ADJ","VERB","NOUN"), skipgram =0)
+#|x$lemma == "seat"
+stats<-as.data.frame(stats)
+x2<- stats[(stats$term2==""),]
+x2<- x2[order(x2$cooc,decreasing = TRUE),]
+x2<-x2[1:30,c(1,3)]
+
+barchart(x2$term1 ~ x2$cooc, data =x2, col = "cadetblue", main = "Most occurring nouns", xlab = "Freq")
+
+
+{
+library(igraph)
+library(ggraph)
+library(ggplot2)
+wordnetwork <- head(stats, 20)
+wordnetwork
+wordnetwork <- graph_from_data_frame(wordnetwork)
+wordnetwork
+
+ggraph(wordnetwork, layout = "fr") +
+  geom_edge_link(aes(width = cooc, edge_alpha = cooc), edge_colour = "pink") +
+  geom_node_text(aes(label = name), col = "darkgreen", size = 4) +
+  theme_graph(base_family = "Arial Narrow") +
+  theme(legend.position = "none") +
+  labs(title = "Cooccurrences within 3 words distance", subtitle = "Nouns & Adjective")
+}
