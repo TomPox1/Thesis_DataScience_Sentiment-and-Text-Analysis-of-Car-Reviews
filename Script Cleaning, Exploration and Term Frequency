@@ -449,3 +449,61 @@ ggraph(wordnetwork, layout = "fr") +
   theme(legend.position = "none") +
   labs(title = "Cooccurrences within 3 words distance", subtitle = "Nouns & Adjective")
 }
+
+# Creating time series of the 4 brands 
+s_storica <- cbind(prius_s$prius,focus_s$focus,tucson_s$tucson,highlander_s$highlander)
+
+colnames(s_storica)<-c("prius","focus","tucson","highlander")
+rownames(s_storica)<-c("2005","2006","2007","2008","2009","2010",
+                       "2011","2012","2013","2014","2015","2016","2017")
+
+
+s_storica_t<-as.vector(s_storica)
+s_storica_t<-as.data.frame(t(s_storica_t))
+s_storica_t
+
+s_storica_t<-t(s_storica_t)
+
+
+mean(z[c("prius_05","prius_07","prius_08","prius_09","prius_10","prius_11","prius_12",
+         "prius_13",
+         "focus_05","focus_06","focus_08","focus_09","focus_10","focus_11",
+         "tucson_05","tucson_06","tucson_07","tucson_08","tucson_10","tucson_11","tucson_17",
+         "highlander_05","highlander_06","highlander_07","highlander_08","highlander_09","highlander_11","highlander_12",
+         "highlander_13","highlander_14","highlander_15","highlander_16","highlander_17")
+])
+
+mean(s_storica_t[c("tucson_12","tucson_13","tucson_08","tucson_17","tucson_14",
+                   "tucson_09","tucson_11","focus_08","focus_09","focus_16",
+                   "focus_07","focus_10","focus_15","focus_12","highlander_07",
+                   "highlander_09"),])
+var((s_storica_t[c("tucson_12","tucson_13","tucson_08","tucson_17","tucson_14",
+                   "tucson_09","tucson_11","focus_08","focus_09","focus_16",
+                   "focus_07","focus_10","focus_15","focus_12","highlander_07",
+                   "highlander_09"),]))
+
+mean(s_storica_t[c("prius_05","prius_17","prius_08","prius_15","prius_06","prius_16"),])
+
+mean(s_storica_t[c("highlander_06" , "highlander_08" , "highlander_10" ,
+                   "highlander_11", "highlander_12", "highlander_13",
+                   "highlander_14","highlander_15", "highlander_16" ,"highlander_17",
+                         "prius_07"  ,         "prius_09"  ,
+                   "prius_10" ,     "prius_11" ,    "prius_12" ,    
+                   "prius_13" ,     "prius_14"  ,    "focus_05"    ,  "focus_06" ,        
+                           "focus_11" ,         
+                   "focus_13"  ,    "focus_14"   ,        
+                       "focus_17" ,  "tucson_05"   ,  "tucson_06"   ,  "tucson_07"    ,
+                        "tucson_10"    
+                  ),])
+
+z<-s_storica_t[c("prius_05" ,     "prius_06"   ,   "prius_07"  ,    "prius_08"   ,   "prius_09"  ,
+"prius_10"    ,  "prius_11"  ,    "prius_12"    , 
+"prius_13"   ,   "prius_14"   ,   "prius_15"     , "prius_16"  ,    "prius_17"  ), ]  
+
+var(z)
+z<-s_storica_t[c("tucson_05" ,     "tucson_06"   ,   "tucson_07"  ,    "tucson_08"   ,   "tucson_09"  ,
+                 "tucson_10"    ,  "tucson_11"  ,    "tucson_12"    , 
+                 "tucson_13"   ,   "tucson_14"   ,   "tucson_15"     , "tucson_16"  ,    "tucson_17"  ), ]  
+
+var(z)
+mean(z)
