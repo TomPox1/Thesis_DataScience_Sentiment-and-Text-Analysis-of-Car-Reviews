@@ -1,0 +1,346 @@
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(ngram)
+library(udpipe)
+library(tm)
+library("stopwords")
+
+#Exploring Data and finding a good combination of car model and year in order to have a suitable number of reviews
+Nuovo<-read.csv("C:/Users/tomma/Desktop/Codici\\Review.csv")
+Nuovo
+Nuovo.col<-Nuovo[,2]
+elenco<-table(Nuovo.col)
+sort(elenco)
+
+
+#Models reviewed after year 2000
+prova <- Nuovo %>% filter(Nuovo[,3] >= 2000)
+
+#Extraction of 4 Models in 2016
+Estrazione <- {
+
+prius_2016 <- prova %>% filter(prova[,2] == "prius",prova[,3] == 2016)
+focus_2016 <- prova %>% filter(prova[,2] == "focus", prova[,3] == 2016)
+highlander_2016 <- prova %>% filter(prova[,2] == "highlander", prova[,3] ==2016)
+tucson_2016 <- prova %>% filter(prova[,2] == "tucson", prova[,3] ==2016)
+
+macchine <-list(
+  prius_2016,
+  focus_2016,
+  highlander_2016,
+  tucson_2016
+  )
+}
+
+
+D_1<-as.data.frame(macchine[1])
+D_2<-as.data.frame(macchine[2])
+D_3<-as.data.frame(macchine[3])
+D_4<-as.data.frame(macchine[4])
+
+D<-rbind(D_1,D_2,D_3,D_4)
+
+{
+# Import reviews texts
+D_1$testop <- cleanTesto(D_1$Review,hashtag = F,mention = T,numeri = F,punteggiatura = F,minuscolo =T)
+
+D_1$testop <- iconv(x = D_1$testop, to = "UTF-8")
+
+# pos tagging and lemmatization
+# loading model
+ud_model_EN <- udpipe_load_model("C:/Users/Tommaso/Desktop/Tesinat/Codici\\english-ewt-ud-2.5-191206.udpipe")
+
+# Creating a StopWords list
+
+D_1$doc_id <- 1:nrow(D_1)
+
+c<- c("dealer","year","honda","fiat","car","tucson","highlander","ford","new","manual","automatic","get","focus","prius","accord","toyota","camry","civic","vehicle","rav4")
+dfLemm <-lemmaUDP(x = D_1$testop,
+                   model = ud_model_EN,
+                   doc_id = D_1$doc_id,
+                   stopw = tm::stopwords("english"),
+                   userstopw = c)
+
+
+# Reconstruction of lemmatized sentences
+txtLem <- dfLemm %>%
+  filter(!is.na(lemma) & STOP==FALSE ) %>%
+  select(doc_id,lemma) %>%
+  group_by(doc_id=as.numeric(doc_id)) %>%
+  summarise(txtL=paste(lemma,collapse = " "))
+
+D_1 <- left_join(D_1,txtLem,by="doc_id")
+
+# Compound words correction
+mycorrez <- c(
+  "steering wheel","steering_wheel",
+  "fun to drive", "fun_to_drive",
+  
+  "brand new","brand_new",
+  
+  "stop work", "stop_work",
+  "gas mileage", "gas_mileage",
+  "fuel economy", "fuel_economy",
+  
+  "driver seat", "driver_seat",
+  "touch screen", "touch_screen",
+  "front seat", "front_seat",
+  "adaptive cruise control", "adaptive_cruise_control",
+  "back camera", "back_camera",
+  "vibration quality","vibration_quality",
+  "blind spot", "blind_spot",
+  "safety feature", "safety_feature",
+  "cruise control", "cruise_control",
+  "navigation system", "navigation_system",
+  "climate control", "climate_control",
+  "back seat", "back_seat",
+  "sound system", "sound_system",
+  
+  
+  "steering wheel", "steering_wheel",
+  "mile per gallon", "MPG",
+  
+  "rear seat", "rear_seat",
+  "oil change", "oil_change",
+  "leather seat", "leather_seat",
+  "front passenger seat", "front_passenger_seat",
+  "rear view camera", "rear_view_camera",
+  "center console", "center_console",
+  "sport mode", "sport_mode",
+  "driver side", "driver_side",
+  "accord sport", "accord_sport",
+  "audio system", "audio_system",
+  "sound system", "sound_system",
+  "lane departure warning", "lane_departure_warning",
+  "side view camera", "side_view_camera",
+  "side view  mirror", "side_view_mirror",
+  "new civic", "new_civic",
+  "passenger side", "passenger_side",
+  "seat comfortable", "seat_comfortable",
+  "camry special edition", "camry_special_edition",
+  "infotainment system", "infotainment_system",
+  "leg room", "leg_room",
+  "gas mileage", "gas_mileage",
+  "test drive", "test_drive",
+  "blind spot", "blind_spot",
+  "adaptive cruise control","adaptive_cruise_control",
+  "driver seat", "driver_seat",
+  "cruise control", "cruise_control",
+  "back seat", "back_seat",
+  "front seat", "front_seat",
+  "fuel economy", "fuel_economy",
+  "test drove", "test_drive",
+  "pretty good", "pretty_good",
+  "apple carplay", "appl_carplay",
+  "2 years", "2_years",
+  "3 years", "3_years",
+  "touring model", "touring_model",
+"prius", "",
+  "cr v", "",
+"camry", " ",
+"accord", " ",
+"crv", " ",
+"civic", " ",
+"rav4", " ",
+"honda", " ",
+"car", " ",
+"vehicle", " ",
+"toyota", " ",
+"fiat", " ",
+"feels like", "feels_like",
+"feel like", "feel_like",
+"around town", "around_town",
+"prius", " ",
+  "ford"," ",
+"get"," ",
+"comment"," ",
+"process", " "
+  
+  
+)
+D_1$txtL.y <- corFrmComp(vText = D_2$txtL.y,correzioni = mycorrez)
+
+
+D_1<- D%>% filter(Model=="prius")
+D_2<- D%>% filter(Model=="focus")
+D_3<- D%>% filter(Model=="highlander")
+D_4<- D%>% filter(Model=="tucson")
+
+# Vectorization and TF weighting for all 4 brands. 
+# VectorSource argument was changed for every brand.
+SLcorpus <- Corpus( VectorSource(D_1$txtL) )
+SLcorpus
+
+# TF weighting
+SLtdm <- TermDocumentMatrix(SLcorpus)
+mSLtdm <- as.matrix(SLtdm)
+dfSLtdm <- data.frame(words=rownames(mSLtdm),mSLtdm,freq=rowSums(mSLtdm))
+rownames(dfSLtdm) <- NULL
+freqTF <- dfSLtdm %>%
+  select(words,freq) %>%
+  top_n(n = 20,wt = freq) %>%
+  arrange(-freq)
+
+freqTF
+
+SLtdmIDF <- weightTfIdf(SLtdm)
+mSLtdmIDF <- as.matrix(SLtdmIDF)
+dfSLtdmIDF <- data.frame(words=rownames(mSLtdmIDF),mSLtdmIDF,freq=rowSums(mSLtdmIDF))
+rownames(dfSLtdmIDF) <- NULL
+prius_freqIDF <- dfSLtdmIDF %>%
+  select(words,freq) %>%
+  top_n(20,freq) %>%
+  arrange(-freq)
+prius_freqIDF
+
+SLcorpus <- Corpus( VectorSource(D_2$txtL) )
+SLcorpus
+
+SLtdm <- TermDocumentMatrix(SLcorpus)
+mSLtdm <- as.matrix(SLtdm)
+dfSLtdm <- data.frame(words=rownames(mSLtdm),mSLtdm,freq=rowSums(mSLtdm))
+rownames(dfSLtdm) <- NULL
+freqTF <- dfSLtdm %>%
+  select(words,freq) %>%
+  top_n(n = 20,wt = freq) %>%
+  arrange(-freq)
+
+freqTF
+
+SLtdmIDF <- weightTfIdf(SLtdm)
+mSLtdmIDF <- as.matrix(SLtdmIDF)
+dfSLtdmIDF <- data.frame(words=rownames(mSLtdmIDF),mSLtdmIDF,freq=rowSums(mSLtdmIDF))
+rownames(dfSLtdmIDF) <- NULL
+focus_freqIDF <- dfSLtdmIDF %>%
+  select(words,freq) %>%
+  top_n(20,freq) %>%
+  arrange(-freq)
+focus_freqIDF
+
+SLcorpus <- Corpus( VectorSource(D_3$txtL) )
+SLcorpus
+
+
+SLtdm <- TermDocumentMatrix(SLcorpus)
+mSLtdm <- as.matrix(SLtdm)
+dfSLtdm <- data.frame(words=rownames(mSLtdm),mSLtdm,freq=rowSums(mSLtdm))
+rownames(dfSLtdm) <- NULL
+freqTF <- dfSLtdm %>%
+  select(words,freq) %>%
+  top_n(n = 20,wt = freq) %>%
+  arrange(-freq)
+
+freqTF
+
+SLtdmIDF <- weightTfIdf(SLtdm)
+mSLtdmIDF <- as.matrix(SLtdmIDF)
+dfSLtdmIDF <- data.frame(words=rownames(mSLtdmIDF),mSLtdmIDF,freq=rowSums(mSLtdmIDF))
+rownames(dfSLtdmIDF) <- NULL
+highlander_freqIDF <- dfSLtdmIDF %>%
+  select(words,freq) %>%
+  top_n(20,freq) %>%
+  arrange(-freq)
+highlander_freqIDF
+
+SLcorpus <- Corpus( VectorSource(D_4$txtL) )
+SLcorpus
+
+
+SLtdm <- TermDocumentMatrix(SLcorpus)
+mSLtdm <- as.matrix(SLtdm)
+dfSLtdm <- data.frame(words=rownames(mSLtdm),mSLtdm,freq=rowSums(mSLtdm))
+rownames(dfSLtdm) <- NULL
+freqTF <- dfSLtdm %>%
+  select(words,freq) %>%
+  top_n(n = 20,wt = freq) %>%
+  arrange(-freq)
+
+freqTF
+
+SLtdmIDF <- weightTfIdf(SLtdm)
+mSLtdmIDF <- as.matrix(SLtdmIDF)
+dfSLtdmIDF <- data.frame(words=rownames(mSLtdmIDF),mSLtdmIDF,freq=rowSums(mSLtdmIDF))
+rownames(dfSLtdmIDF) <- NULL
+tucson_freqIDF <- dfSLtdmIDF %>%
+  select(words,freq) %>%
+  top_n(20,freq) %>%
+  arrange(-freq)
+tucson_freqIDF
+
+}
+
+# Same Process as before but using IDF weighting
+SLtdmIDF <- weightTfIdf(SLtdm)
+mSLtdmIDF <- as.matrix(SLtdmIDF)
+dfSLtdmIDF <- data.frame(words=rownames(mSLtdmIDF),mSLtdmIDF,freq=rowSums(mSLtdmIDF))
+rownames(dfSLtdmIDF) <- NULL
+freqIDF <- dfSLtdmIDF %>%
+  select(words,freq) %>%
+  top_n(20,freq) %>%
+  arrange(-freq)
+freqIDF
+
+
+
+source("./sentimentFunctions.R")
+library(sentimentr)
+library(RSentiment)
+library(SentimentAnalysis)
+library(syuzhet)
+library(lubridate)
+library(ggplot2)
+library(scales)
+library(reshape2)
+library(dplyr)
+
+syuz_sent <- get_nrc_sentiment(D_2$txtL.y, language = "english")
+head(syuz_sent,5)
+
+valence <- (syuz_sent[, 9]*-1) + syuz_sent[, 10]
+table(valence)
+
+
+syuz_polarity <- ifelse(valence<0,"negativo",ifelse(valence>0,"positivo","neutro"))
+D_1<- cbind(D_1,syuz_polarity)
+D_1_p<-D_1%>%filter(D_1$syuz_polarity=="positivo")
+D_1_n<-D_1%>%filter(D_1$syuz_polarity=="negativo")
+c_1_p <- Corpus( VectorSource(D_1_p) )
+c_1_n <- Corpus( VectorSource(D_1_n) )
+
+syuz_sent <- get_nrc_sentiment(D_2$txtL, language = "english")
+head(syuz_sent,5)
+
+valence <- (syuz_sent[, 9]*-1) + syuz_sent[, 10]
+table(valence)
+syuz_polarity <- ifelse(valence<0,"negativo",ifelse(valence>0,"positivo","neutro"))
+D_2<- cbind(D_2,syuz_polarity)
+D_2_p<-D_2%>%filter(D_2$syuz_polarity=="positivo")
+D_2_n<-D_2%>%filter(D_2$syuz_polarity=="negativo")
+c_2_p <- Corpus( VectorSource(D_2_p) )
+c_2_n <- Corpus( VectorSource(D_2_n) )
+
+syuz_sent <- get_nrc_sentiment(D_3$txtL, language = "english")
+head(syuz_sent,5)
+
+valence <- (syuz_sent[, 9]*-1) + syuz_sent[, 10]
+table(valence)
+syuz_polarity <- ifelse(valence<0,"negativo",ifelse(valence>0,"positivo","neutro"))
+D_3<- cbind(D_3,syuz_polarity)
+D_3_p<-D_3%>%filter(D_3$syuz_polarity=="positivo")
+D_3_n<-D_3%>%filter(D_3$syuz_polarity=="negativo")
+c_3_p <- Corpus( VectorSource(D_3_p) )
+c_3_n <- Corpus( VectorSource(D_3_n) )
+
+syuz_sent <- get_nrc_sentiment(D_4$txtL, language = "english")
+head(syuz_sent,5)
+
+valence <- (syuz_sent[, 9]*-1) + syuz_sent[, 10]
+table(valence)
+syuz_polarity <- ifelse(valence<0,"negativo",ifelse(valence>0,"positivo","neutro"))
+D_4<- cbind(D_4,syuz_polarity)
+D_4_p<-D_4%>%filter(D_4$syuz_polarity=="positivo")
+D_4_n<-D_4%>%filter(D_4$syuz_polarity=="negativo")
+c_4_p <- Corpus( VectorSource(D_4_p) )
+c_4_n <- Corpus( VectorSource(D_4_n) )
+
